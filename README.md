@@ -131,8 +131,8 @@ Pre-built Docker images are published to Docker Hub on every push to `main`.
 
 | Image | Docker Hub |
 |-------|------------|
-| Backend | [`kripasindhu007/taskqueue-backend`](https://hub.docker.com/r/kripasindhu007/taskqueue-backend) |
-| Frontend | [`kripasindhu007/taskqueue-frontend`](https://hub.docker.com/r/kripasindhu007/taskqueue-frontend) |
+| Backend | [`kripa007/taskqueue-backend`](https://hub.docker.com/r/kripa007/taskqueue-backend) |
+| Frontend | [`kripa007/taskqueue-frontend`](https://hub.docker.com/r/kripa007/taskqueue-frontend) |
 
 ### Pull and run with Docker Compose (no build needed)
 
@@ -155,12 +155,12 @@ docker run -d --name taskqueue-backend \
   -p 8080:8080 \
   -e REDIS_ADDR=redis:6379 \
   --link redis \
-  kripasindhu007/taskqueue-backend:latest
+  kripa007/taskqueue-backend:latest
 
 # Start frontend
 docker run -d --name taskqueue-frontend \
   -p 3000:3000 \
-  kripasindhu007/taskqueue-frontend:latest
+  kripa007/taskqueue-frontend:latest
 ```
 
 ## Deployment
@@ -205,7 +205,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: kripasindhu007/taskqueue-backend:latest
+          image: kripa007/taskqueue-backend:latest
           ports:
             - containerPort: 8080
           env:
