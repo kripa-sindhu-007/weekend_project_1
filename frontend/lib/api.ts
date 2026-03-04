@@ -64,3 +64,8 @@ export async function getEnhancedMetrics(): Promise<EnhancedMetrics> {
   if (!res.ok) throw new Error("Failed to fetch enhanced metrics");
   return res.json();
 }
+
+export async function flushData(): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/flush`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to flush data");
+}

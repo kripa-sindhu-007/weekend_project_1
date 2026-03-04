@@ -15,6 +15,7 @@ func NewRouter(h *Handler) http.Handler {
 	mux.HandleFunc("GET /api/workers", h.GetWorkers)
 	mux.HandleFunc("GET /api/queues", h.GetQueues)
 	mux.HandleFunc("GET /api/metrics/enhanced", h.GetEnhancedMetrics)
+	mux.HandleFunc("DELETE /api/flush", h.FlushData)
 
 	// Apply middleware: Recovery -> Logging -> CORS -> routes
 	var handler http.Handler = mux

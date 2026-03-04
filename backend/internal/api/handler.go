@@ -201,6 +201,18 @@ func (h *Handler) GetEnhancedMetrics(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, m)
 }
 
+func (h *Handler) FlushData(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	keys := []string{
+		store.KeyReady, store.KeyDelayed, store.KeyDeadLetter,
+		store.KeyMetrics, store.KeyEvents, store.KeyWorkers,
+	}
+	for _, k := range keys {
+		h.redis.Del(ctx, k)
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "flushed"})
+}
+
 func writeJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

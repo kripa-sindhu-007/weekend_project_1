@@ -1,0 +1,478 @@
+openapi: 3.0.3
+info:
+  title: Task Queue API
+  description: |
+    A Redis-backed priority task queue with delayed scheduling, dead-letter store,
+    worker pool management, and real-time event tracking.
+  version: 1.0.0
+  contact:
+    name: Weekend Project
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Tasks
+    description: Task submission and failed task retrieval
+  - name: Metrics
+    description: Queue and processing metrics
+  - name: Monitoring
+    description: Health checks, events, workers, and queue inspection
+  - name: Admin
+    description: Administrative operations
+
+paths:
+  /api/tasks:
+    post:
+      tags: [Tasks]
+      summary: Submit a new task
+      description: |
+        Enqueues a task into the priority queue. If `delay` > 0, the task is
+        scheduled in the delayed queue and promoted to the ready queue after
+        the delay elapses.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitTaskRequest"
+            examples:
+              immediate:
+                summary: Immediate task
+                value:
+                  id: "task-001"
+                  priority: 5
+                  delay: 0
+                  max_retries: 3
+              delayed:
+                summary: Delayed task (10s)
+                value:
+                  id: "task-002"
+                  priority: 1
+                  delay: 10
+                  max_retries: 2
+      responses:
+        "201":
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Invalid request body or missing required fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missingId:
+                  value:
+                    error: "id is required"
+                invalidJson:
+                  value:
+                    error: "invalid JSON"
+        "500":
+          description: Internal server error (Redis failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/tasks/failed:
+    get:
+      tags: [Tasks]
+      summary: Get failed tasks
+      description: Returns paginated list of tasks in the dead-letter queue.
+      parameters:
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of items to skip
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Maximum number of items to return
+      responses:
+        "200":
+          description: List of failed tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FailedTask"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/metrics:
+    get:
+      tags: [Metrics]
+      summary: Get basic metrics
+      description: Returns core queue metrics including processed/failed counts, queue size, and active workers.
+      responses:
+        "200":
+          description: Basic metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Metrics"
+              example:
+                total_processed: 150
+                total_failed: 3
+                total_retries: 7
+                queue_size: 12
+                active_workers: 4
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/metrics/enhanced:
+    get:
+      tags: [Metrics]
+      summary: Get enhanced metrics
+      description: |
+        Returns extended metrics including success rate, delayed queue size,
+        dead-letter queue size, and total submitted count.
+      responses:
+        "200":
+          description: Enhanced metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnhancedMetrics"
+              example:
+                total_processed: 150
+                total_failed: 3
+                total_retries: 7
+                queue_size: 12
+                active_workers: 4
+                success_rate: 98.04
+                delayed_queue_size: 5
+                dead_letter_size: 2
+                total_submitted: 160
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/health:
+    get:
+      tags: [Monitoring]
+      summary: Health check
+      description: Pings Redis to verify connectivity. Returns healthy/unhealthy status.
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+        "503":
+          description: Service is unhealthy (Redis unreachable)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "unhealthy"
+                  error:
+                    type: string
+                    example: "connection refused"
+
+  /api/events:
+    get:
+      tags: [Monitoring]
+      summary: Get task events
+      description: |
+        Returns recent task lifecycle events (submitted, started, completed,
+        failed, retrying, dead_lettered, promoted).
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Maximum number of events to return
+      responses:
+        "200":
+          description: List of task events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TaskEvent"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/workers:
+    get:
+      tags: [Monitoring]
+      summary: Get worker states
+      description: Returns the current state of all workers in the pool (idle or processing).
+      responses:
+        "200":
+          description: List of worker states
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkerState"
+              example:
+                - id: 0
+                  status: "processing"
+                  task_id: "task-001"
+                  started_at: "2026-03-04T10:30:00Z"
+                - id: 1
+                  status: "idle"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/queues:
+    get:
+      tags: [Monitoring]
+      summary: Peek into queues
+      description: Returns up to 20 items each from the ready and delayed queues.
+      responses:
+        "200":
+          description: Ready and delayed queue contents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueuePeekResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/flush:
+    delete:
+      tags: [Admin]
+      summary: Flush all data
+      description: |
+        **Destructive operation.** Deletes all keys from Redis including
+        ready queue, delayed queue, dead-letter store, metrics, events, and worker states.
+      responses:
+        "200":
+          description: All data flushed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "flushed"
+
+components:
+  schemas:
+    SubmitTaskRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: Unique task identifier
+          example: "task-001"
+        priority:
+          type: integer
+          description: Task priority (higher = processed first)
+          default: 0
+          example: 5
+        delay:
+          type: integer
+          description: Delay in seconds before task becomes eligible for processing
+          default: 0
+          example: 0
+        max_retries:
+          type: integer
+          description: Maximum retry attempts on failure (0 = no retries)
+          default: 0
+          example: 3
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "task-001"
+        priority:
+          type: integer
+          example: 5
+        delay:
+          type: integer
+          example: 0
+        max_retries:
+          type: integer
+          example: 3
+        retries:
+          type: integer
+          example: 0
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          example: "pending"
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-03-04T10:30:00Z"
+        error:
+          type: string
+          description: Error message (only present on failed tasks)
+
+    FailedTask:
+      type: object
+      properties:
+        task:
+          $ref: "#/components/schemas/Task"
+        failed_at:
+          type: string
+          format: date-time
+          example: "2026-03-04T10:31:00Z"
+        reason:
+          type: string
+          example: "simulated failure"
+
+    Metrics:
+      type: object
+      properties:
+        total_processed:
+          type: integer
+          format: int64
+        total_failed:
+          type: integer
+          format: int64
+        total_retries:
+          type: integer
+          format: int64
+        queue_size:
+          type: integer
+          format: int64
+        active_workers:
+          type: integer
+          format: int64
+
+    EnhancedMetrics:
+      allOf:
+        - $ref: "#/components/schemas/Metrics"
+        - type: object
+          properties:
+            success_rate:
+              type: number
+              format: double
+              description: Percentage of successfully processed tasks
+            delayed_queue_size:
+              type: integer
+              format: int64
+            dead_letter_size:
+              type: integer
+              format: int64
+            total_submitted:
+              type: integer
+              format: int64
+
+    TaskEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "evt-1709547000000000000"
+        task_id:
+          type: string
+          example: "task-001"
+        type:
+          type: string
+          enum: [submitted, started, completed, failed, retrying, dead_lettered, promoted]
+          example: "submitted"
+        worker_id:
+          type: integer
+          description: Worker ID that processed the event (-1 for submission events)
+          example: 2
+        detail:
+          type: string
+          example: "Priority=5, Delay=0s, MaxRetries=3"
+        timestamp:
+          type: string
+          format: date-time
+
+    WorkerState:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 0
+        status:
+          type: string
+          enum: [idle, processing]
+          example: "processing"
+        task_id:
+          type: string
+          description: Only present when status is processing
+          example: "task-001"
+        started_at:
+          type: string
+          format: date-time
+          description: Only present when status is processing
+
+    DelayedEntry:
+      type: object
+      properties:
+        task:
+          $ref: "#/components/schemas/Task"
+        execute_at:
+          type: number
+          format: double
+          description: Unix timestamp when the task becomes eligible
+
+    QueuePeekResponse:
+      type: object
+      properties:
+        ready:
+          type: array
+          items:
+            $ref: "#/components/schemas/Task"
+          description: Tasks in the ready queue (up to 20)
+        delayed:
+          type: array
+          items:
+            $ref: "#/components/schemas/DelayedEntry"
+          description: Tasks in the delayed queue (up to 20)
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "something went wrong"
