@@ -12,7 +12,7 @@ services:
       retries: 5
 
   backend:
-    image: kripasindhu007/taskqueue-backend:latest
+    image: kripa007/taskqueue-backend:latest
     build: ./backend
     ports:
       - "8080:8080"
@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: kripasindhu007/taskqueue-frontend:latest
+    image: kripa007/taskqueue-frontend:latest
     build: ./frontend
     ports:
       - "3000:3000"
