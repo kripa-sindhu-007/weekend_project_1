@@ -233,8 +233,8 @@ Add these secrets in your GitHub repository settings (**Settings → Secrets and
 
 | Secret | Description |
 |--------|-------------|
-| `DOCKERHUB_TOKEN` (Secret) | Docker Hub access token (create at [hub.docker.com/settings/security](https://hub.docker.com/settings/security)) |
-| `DOCKERHUB_USERNAME` (Variable) | Your Docker Hub username |
+| `DOCKERHUB_USERNAME` | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (create at [hub.docker.com/settings/security](https://hub.docker.com/settings/security)) |
 
 ### Tagging Strategy
 
