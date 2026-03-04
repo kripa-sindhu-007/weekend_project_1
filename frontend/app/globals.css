@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+  --color-card: #141414;
+  --color-card-foreground: #ededed;
+  --color-popover: #141414;
+  --color-popover-foreground: #ededed;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1e1e1e;
+  --color-secondary-foreground: #ededed;
+  --color-muted: #1e1e1e;
+  --color-muted-foreground: #888888;
+  --color-accent: #1e1e1e;
+  --color-accent-foreground: #ededed;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ededed;
+  --color-border: #2a2a2a;
+  --color-input: #2a2a2a;
+  --color-ring: #3b82f6;
+  --radius: 0.75rem;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  line-height: 1.5;
+}
+
+/* Activity Log Terminal */
+.activity-log {
+  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #333 transparent;
+}
+
+.activity-log::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activity-log::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activity-log::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+/* Worker pulse animation */
+@keyframes pulse-blue {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+.worker-pulse {
+  animation: pulse-blue 2s ease-in-out infinite;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 100;
+}
